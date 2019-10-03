@@ -4,6 +4,8 @@
 #include <mutex>
 #include <memory>
 #include <vector>
+#include <thread>
+#include <chrono>
 #include <functional>
 
 #include "producer.h"
@@ -46,6 +48,7 @@ void DataManager<T>::execute() {
 
         for (;;) {
             std::lock_guard<std::mutex> guardDelete(mutexReadWrite);
+            std::this_thread::sleep_for(static_cast<std::chrono::milliseconds>(1));
             consumer1->consume(buffer);
         }
 
@@ -61,6 +64,7 @@ void DataManager<T>::execute() {
 
         for (;;) {
             std::lock_guard<std::mutex> guardDelete(mutexReadWrite);
+            std::this_thread::sleep_for(static_cast<std::chrono::milliseconds>(1));
             consumer2->consume(buffer);
         }
 
@@ -77,6 +81,7 @@ void DataManager<T>::execute() {
 
         for (;;) {
             std::lock_guard<std::mutex> guardDelete(mutexReadWrite);
+            std::this_thread::sleep_for(static_cast<std::chrono::milliseconds>(1));
             consumer3->consume(buffer);
         }
 
@@ -97,6 +102,7 @@ void DataManager<T>::execute() {
     std::function<void()> funcThreadProducerW = [&]() {
         for (;;) {
             std::lock_guard<std::mutex> guardWrite(mutexReadWrite);
+            std::this_thread::sleep_for(static_cast<std::chrono::milliseconds>(1));
             producer->produce(rand() % 1000, buffer);
         }
     };
