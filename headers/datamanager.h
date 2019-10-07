@@ -6,32 +6,31 @@
 #include <vector>
 #include <thread>
 #include <chrono>
+#include <ctime>
 #include <functional>
 
 #include "producer.h"
 #include "consumer.h"
 
 template <typename T>
-class DataManager {
+class DataManager { 
 private:
-    std::vector<std::mutex> mutexesConsumers {3};
     std::mutex mutexAcceptConnect;
     std::mutex mutexReadWrite;
 
 private:
     std::queue<T> buffer;
     unsigned int countConsumers;
+    unsigned int countSleepConsumers;
 
 private:
     std::unique_ptr<Producer<T>> producer;
-    std::unique_ptr<Consumer<T>> consumer1;
-    std::unique_ptr<Consumer<T>> consumer2;
-    std::unique_ptr<Consumer<T>> consumer3;
+    std::vector<std::unique_ptr<Consumer<T>>> consumers;
 
 public:
     DataManager() = default;
     ~DataManager() = default;
-    explicit DataManager(const unsigned int &);
+    DataManager(const unsigned int &);
 
 public:
     void execute();
@@ -39,98 +38,77 @@ public:
 
 template <typename T>
 void DataManager<T>::execute() {
-    std::function<void()> funcThreadConsumer1 = [&]() {
+    // lambda expression for each consumer
+    auto consumerFunc = [&](std::unique_ptr<Consumer<T>> & Consumer, std::unique_ptr<Producer<T>> & Producer) {
         mutexAcceptConnect.lock();
-        consumer1->connect(producer->getIDs());
-        mutexAcceptConnect.unlock();
+        Consumer->connect(Producer->getIDs());
 
-        mutexesConsumers[0].lock();
+        if (producer->accept()) 
+            mutexReadWrite.unlock();
 
-        for (;;) {
+        else
+            mutexAcceptConnect.unlock();
+
+        clock_t end = clock() + 2000*CLOCKS_PER_SEC/1000;
+
+        for (;clock() < end;) {
             std::lock_guard<std::mutex> guardDelete(mutexReadWrite);
-            std::this_thread::sleep_for(static_cast<std::chrono::milliseconds>(1));
-            consumer1->consume(buffer);
+            std::this_thread::sleep_for(static_cast<std::chrono::milliseconds>(5));
+            Consumer->consume(buffer);
         }
 
-        mutexesConsumers[0].unlock();
-    };
+        Consumer->disconnect(producer->getIDs());
+        countSleepConsumers--;
 
-    std::function<void()> funcThreadConsumer2 = [&]() {
-        mutexAcceptConnect.lock();
-        consumer2->connect(producer->getIDs());
-        mutexAcceptConnect.unlock();
-
-        mutexesConsumers[1].lock();
-
-        for (;;) {
-            std::lock_guard<std::mutex> guardDelete(mutexReadWrite);
-            std::this_thread::sleep_for(static_cast<std::chrono::milliseconds>(1));
-            consumer2->consume(buffer);
+        if (countSleepConsumers == 1) {
+            std::cout << "[!] Program has finished!" << std::endl;
+            exit(0);
         }
 
-        mutexesConsumers[1].unlock();
-
-    };
-
-    std::function<void()> funcThreadConsumer3 = [&]() {
-        mutexAcceptConnect.lock();
-        consumer3->connect(producer->getIDs());
-        mutexAcceptConnect.unlock();
-
-        mutexesConsumers[2].lock();
-
-        for (;;) {
-            std::lock_guard<std::mutex> guardDelete(mutexReadWrite);
-            std::this_thread::sleep_for(static_cast<std::chrono::milliseconds>(1));
-            consumer3->consume(buffer);
-        }
-
-        mutexesConsumers[2].unlock();
-    };
-
-    std::function<void()> funcThreadProducerAC = [&]() {
-        for (;;) {
-            if (producer->accept()) {
-                mutexAcceptConnect.lock();
-                mutexesConsumers[producer->getIDs().front()-1].unlock();
-                mutexesConsumers[producer->getIDs().back()-1].unlock();
-                mutexReadWrite.unlock();
-            }
+        else {
+            mutexReadWrite.lock();
+            mutexAcceptConnect.unlock();
         }
     };
 
+    // vector for the saving consumers threads
+    std::vector<std::thread> vectorThreadsConsumers;
+
+    for (int i=0; i < countConsumers; i++)
+        vectorThreadsConsumers.push_back(std::thread(consumerFunc, std::ref(consumers[i]), std::ref(producer)));
+
+    // lambda expression which allows to producer start writing into buffer
     std::function<void()> funcThreadProducerW = [&]() {
-        for (;;) {
+        clock_t end = clock() + 10000*CLOCKS_PER_SEC/1000;
+
+        for (;clock() < end;) {
             std::lock_guard<std::mutex> guardWrite(mutexReadWrite);
-            std::this_thread::sleep_for(static_cast<std::chrono::milliseconds>(1));
+            std::this_thread::sleep_for(static_cast<std::chrono::milliseconds>(5));
             producer->produce(rand() % 1000, buffer);
         }
+
+        exit(0);
     };
 
-    std::thread thrConsumer1(funcThreadConsumer1);
-    std::thread thrConsumer2(funcThreadConsumer2);
-    std::thread thrConsumer3(funcThreadConsumer3);
-    std::thread threadProducerAC(funcThreadProducerAC);
+    // running of the producer thread for writing into buffer
     std::thread threadProducerW(funcThreadProducerW);
 
-    thrConsumer1.join();
-    thrConsumer2.join();
-    thrConsumer3.join();
-    threadProducerAC.join();
+    for (int i=0; i < countConsumers; i++)
+        vectorThreadsConsumers[i].join();
+
+    //threadProducerAC.join();
     threadProducerW.join();
 }
 
 template <typename T>
-DataManager<T>::DataManager(const unsigned int &count) {
+DataManager<T>::DataManager(const unsigned int & count) {
     this->countConsumers = count;
+    this->countSleepConsumers = count;
     this->producer = std::make_unique<Producer<T>>();
-    this->consumer1 = std::make_unique<Consumer<T>>(1);
-    this->consumer2 = std::make_unique<Consumer<T>>(2);
-    this->consumer3 = std::make_unique<Consumer<T>>(3);
 
-    mutexesConsumers[0].lock();
-    mutexesConsumers[1].lock();
-    mutexesConsumers[2].lock();
+    for (int i=0; i < countConsumers; i++)
+        consumers.push_back(std::unique_ptr<Consumer<T>> (new Consumer<T>(i)));
+
     mutexReadWrite.lock();
 }
 
