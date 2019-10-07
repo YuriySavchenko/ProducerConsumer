@@ -3,18 +3,19 @@
 
 #include <iostream>
 #include <queue>
+#include <deque>
 
 template <typename T>
 class Producer {
 protected:
-    std::queue<unsigned int> ID;
+    std::deque<unsigned int> ID;
 
 public:
     void produce(T, std::queue<T> &);
     bool accept();
 
 public:
-    std::queue<unsigned int> & getIDs();
+    std::deque<unsigned int> & getIDs();
 };
 
 template <typename T>
@@ -29,7 +30,7 @@ bool Producer<T>::accept() {
 }
 
 template <typename T>
-std::queue<unsigned int> & Producer<T>::getIDs() {
+std::deque<unsigned int> & Producer<T>::getIDs() {
     return ID;
 }
 
