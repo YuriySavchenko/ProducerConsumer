@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <queue>
+#include <deque>
 
 template<typename T>
 class Consumer {
@@ -11,7 +12,8 @@ private:
 
 public:
     void consume(std::queue<T> &);
-    void connect(std::queue<unsigned int> &);
+    void connect(std::deque<unsigned int> &);
+    void disconnect(std::deque<unsigned int> &);
 
 public:
     Consumer() = default;
@@ -28,14 +30,20 @@ void Consumer<T>::consume(std::queue<T> & buffer) {
 }
 
 template <typename T>
-void Consumer<T>::connect(std::queue<unsigned int> & queue) {
+void Consumer<T>::connect(std::deque<unsigned int> & deque) {
     std::cout << "[!] Connection of Consumer with ID = " << ID << std::endl;
-    queue.push(ID);
+    deque.push_back(ID);
 }
 
 template <typename T>
 Consumer<T>::Consumer(const unsigned int & id) {
     this->ID = id;
+}
+
+template <typename T>
+void Consumer<T>::disconnect(std::deque<unsigned int> & deque) {
+    std::cout << "[!] Consumer with ID = " << ID << " has disconnected!" << std::endl;
+    deque.pop_back();
 }
 
 #endif //CONSUMER_H
