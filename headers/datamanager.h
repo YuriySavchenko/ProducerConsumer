@@ -64,7 +64,7 @@ void DataManager<T>::execute() {
 
         for (;clock() < end;) {
             std::lock_guard<std::mutex> guardDelete(mutexReadWrite);
-            //std::this_thread::sleep_for(static_cast<std::chrono::milliseconds>(50));
+            std::this_thread::sleep_for(static_cast<std::chrono::milliseconds>(50));
             std::lock_guard<std::mutex> guardOutput(mutexOutput);
             Consumer->consume(buffer);
         }
@@ -106,7 +106,7 @@ void DataManager<T>::execute() {
 
         for (;clock() < end;) {
             std::lock_guard<std::mutex> guardWrite(mutexReadWrite);
-            //std::this_thread::sleep_for(static_cast<std::chrono::milliseconds>(50));
+            std::this_thread::sleep_for(static_cast<std::chrono::milliseconds>(50));
 
             std::lock_guard<std::mutex> guardOutput(mutexOutput);
             producer->produce(rand() % 1000, buffer);
