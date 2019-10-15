@@ -20,13 +20,13 @@ public:
 
 template <typename T>
 void Producer<T>::produce(T value, std::queue<T> & buffer) {
-    std::cout << "[+] { PRODUCER } To queue has been wrote value: " << value << std::endl;
+    std::cout << "[+] { PRODUCER ID=W } To queue has been wrote value: " << value << std::endl;
     buffer.push(value);
 }
 
 template <typename T>
 bool Producer<T>::accept() {
-    return (ID.size() == 2) ? true : false;
+    return (ID.size() == 1) ? true : false;
 }
 
 template <typename T>
