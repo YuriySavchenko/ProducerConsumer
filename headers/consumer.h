@@ -19,6 +19,9 @@ public:
     Consumer() = default;
     ~Consumer() = default;
     explicit Consumer(const unsigned int &);
+
+public:
+    const unsigned int & getID() const noexcept;
 };
 
 template<typename T>
@@ -31,7 +34,7 @@ void Consumer<T>::consume(std::queue<T> & buffer) {
 
 template <typename T>
 void Consumer<T>::connect(std::deque<unsigned int> & deque) {
-    std::cout << "[!] Connection of Consumer with ID = " << ID << std::endl;
+    std::cout << "[!] { CONSUMER ID=" << ID << " } has connected!" << std::endl;
     deque.push_back(ID);
 }
 
@@ -42,8 +45,13 @@ Consumer<T>::Consumer(const unsigned int & id) {
 
 template <typename T>
 void Consumer<T>::disconnect(std::deque<unsigned int> & deque) {
-    std::cout << "[!] Consumer with ID = " << ID << " has disconnected!" << std::endl;
+    std::cout << "[!] { CONSUMER ID=" << ID << " } has disconnected!" << std::endl;
     deque.pop_back();
+}
+
+template <typename T>
+const unsigned int & Consumer<T>::getID() const noexcept {
+    return ID;
 }
 
 #endif //CONSUMER_H
